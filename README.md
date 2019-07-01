@@ -1,6 +1,6 @@
 # gulp-etl-transform-json #
 
-This plugin has the functionality of **tap-json**, **target-json** and **tap-json**. 
+This plugin has the functionality of **tap-json**, **target-json** and **transform-json**. 
 
 **Transform-json** takes in two JSON format/file, one is a source JSON and another is template/map JSON. The template/map JSON describes the rules of how you want your JSON to be formatted. The plugin takes a source JSON and then converts to a different JSON using "**qewd-transfrom-json**". For more info check this link "https://www.npmjs.com/package/qewd-transform-json". 
 
@@ -24,7 +24,7 @@ This is a **[gulp-etl](https://gulpetl.com/)** plugin, and as such it is a [gulp
 ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(1).jpg>)
 
 The JSON format files can be of different content, they may be just an object, instance of array containing object, or array of objects.
-The **gulp-etl-tap-json** specifically looks into four different cases the user might run into. These cases are described below:
+The transformation specifically looks into four different cases the user might run into. These cases are described below:
 
 1. The source JSON contains only one object and the template/map JSON also contains one object.
    ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram.jpg>)
@@ -41,9 +41,9 @@ The **gulp-etl-tap-json** specifically looks into four different cases the user 
 
 ##### Sample gulpfile.js
 ```
-/* tap-json maps all .JSON files in a folder into Message Stream files in a different folder *
-/* transform-json maps all .ndjson files in a folder into JSON files in a different folder *
-/* tap-json maps all .JSON files in a folder into JSON files in a different folder *
+// tap-json maps all .JSON files in a folder into Message Stream files in a different folder 
+// transform-json maps all .ndjson files in a folder into JSON files in a different folder 
+// tap-json maps all .JSON files in a folder into JSON files in a different folder 
 
 let gulp = require('gulp')
 var rename = require('gulp-rename')
@@ -55,7 +55,7 @@ var mergeOriginal = false;//if you want your final object as an original object 
 function runTapJson(callback: any) {
   log.info('gulp task starting for ' + PLUGIN_NAME)
 
-  return gulp.src('../testdata/tests/test-oneobject.json',{buffer: true}) //change the source for target-json
+  return gulp.src('../testdata/tests/test-oneobject.json',{buffer: true}) //change the source fromat to .ndjson for target-json
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)
