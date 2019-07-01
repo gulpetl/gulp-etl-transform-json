@@ -20,11 +20,11 @@ This is a **[gulp-etl](https://gulpetl.com/)** plugin, and as such it is a [gulp
 ```
 
 ### Usage
-**gulp-etl** plugins accept a configObj as the first parameter; the configObj will contain any info the plugin needs. For this plugin the configObj is the template/map. The plugin also contains another config other than template/map. The other config it takes in is called **merge**. What merge does is it merges source object and result object. The content of result object that we get after mapping is always different than input object. In order to create an result object similar to input object only with the differences the **merge** config is used. For more info regarding **merge** click the link " <https://www.npmjs.com/package/merge>". The concept of **merge** is explained in diagram below:
+**gulp-etl** plugins accept a configObj as the first parameter; the configObj will contain any info the plugin needs. For this plugin the configObj is the template/map. The plugin also contains another config other than template/map. The other config it takes in is called **merge**. What merge does is it merges source object and result object. The content of result object that we get after mapping is always different than input object. In order to create a result object similar to input object but only with the differences the **merge** config is used. For more info regarding **merge** click the link " <https://www.npmjs.com/package/merge>". The concept of **merge** is explained in diagram below:
 ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(1).jpg>)
 
 The JSON format files can be of different content, they may be just an object, instance of array containing object, or array of objects.
-The transformation specifically looks into four different cases the user might run into. These cases are described below:
+The transformation specifically looks into four different cases the user might run into. These cases are described below: (although **target-json** takes in .ndjson as source it is transformed to JSON before passing to transformer)
 
 1. The source JSON contains only one object and the template/map JSON also contains one object.
    ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram.jpg>)
