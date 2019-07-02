@@ -1,0 +1,9 @@
+{
+    "Name": "{{Name}}",
+    "Manufactured": "{{Manufactured}}",
+    "Model": "{{Model}}",
+    "Mileage": "{{Mileage}}",
+    "Description": "{{Description}}",
+    "Sold": "{{Sold}}"
+}
+
