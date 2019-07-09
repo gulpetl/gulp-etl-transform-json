@@ -9,64 +9,110 @@ const log = loglevel.getLogger(PLUGIN_NAME); // get a logger instance based on t
 log.setLevel((process.env.DEBUG_LEVEL || 'warn'));
 const stringify = require('csv-stringify');
 const split = require('split2');
+var transform = require('qewd-transform-json').transform;
+var merge = require('merge'), original, cloned;
 /** wrap incoming recordObject in a Singer RECORD Message object*/
 function createRecord(recordObject, streamName) {
     return { type: "RECORD", stream: streamName, record: recordObject };
 }
-/* This is a gulp-etl plugin. It is compliant with best practices for Gulp plugins (see
-https://github.com/gulpjs/gulp/blob/master/docs/writing-a-plugin/guidelines.md#what-does-a-good-plugin-look-like ),
-and like all gulp-etl plugins it accepts a configObj as its first parameter */
-function targetCsv(configObj) {
-    if (!configObj)
-        configObj = {};
+function transformer(inputObj, configObj, changeMap) {
+    if (inputObj instanceof Array) {
+        inputObj = {
+            __rootArray: inputObj
+        };
+    }
+    var newObj = transform(configObj, inputObj);
+    let resultArray = [];
+    resultArray.push('[');
+    if (newObj instanceof Array) { //this is the case if you have array of maps
+        for (let i in newObj) {
+            //root Array is only used when input object is an instance of array
+            if (newObj[i].__rootArray) { //remove the wrapped rootArray 
+                var tempObj = newObj[i].__rootArray;
+                if (tempObj instanceof Array) {
+                    for (let j in tempObj) {
+                        if (changeMap == true) {
+                            if (inputObj.__rootArray) {
+                                inputObj = inputObj.__rootArray;
+                            }
+                            tempObj[j] = merge(inputObj[j], tempObj[j]); //merged mapped object with one input object but array of maps 
+                        }
+                        //let handledObj = handleLine(tempObj[j], streamName)
+                        let tempLine = JSON.stringify(tempObj[j]);
+                        if (j != "0" || i != "0") {
+                            resultArray.push(',');
+                        }
+                        if (tempLine) {
+                            resultArray.push(tempLine);
+                        }
+                    }
+                }
+            }
+            else {
+                if (changeMap == true) { //case for one input object but array of maps
+                    newObj[i] = merge(inputObj, newObj[i]); //once merged changes the input object to new merged object
+                }
+                //let handledObj = handleLine(newObj[i], streamName)
+                let tempLine = JSON.stringify(newObj[i]);
+                if (i != "0") {
+                    resultArray.push(',');
+                }
+                if (tempLine) {
+                    resultArray.push(tempLine);
+                }
+            }
+        }
+    }
+    else {
+        if (newObj.__rootArray) { //case for array of input object but one map
+            newObj = newObj.__rootArray;
+        }
+        if (newObj instanceof Array) {
+            for (let i in newObj) {
+                if (changeMap == true) {
+                    if (inputObj.__rootArray) {
+                        inputObj = inputObj.__rootArray;
+                    }
+                    newObj[i] = merge(inputObj[i], newObj[i]); //merged mapped object with input object for one objects but array of maps
+                }
+                //let handledObj = handleLine(newObj[i], streamName)
+                let tempLine = JSON.stringify(newObj[i]);
+                if (i != "0") {
+                    resultArray.push(',');
+                }
+                if (tempLine) {
+                    resultArray.push(tempLine);
+                }
+            }
+        }
+        else { //this is  the case of one object and one map
+            if (changeMap == true) {
+                newObj = merge(inputObj, newObj);
+            }
+            //let handledObj = handleLine(newObj, streamName)
+            let tempLine = JSON.stringify(newObj);
+            resultArray.push(tempLine);
+        }
+    }
+    resultArray.push(']');
+    return resultArray;
+}
+function targetJson(configObj, changeMap) {
+    //if (!configObj) configObj = {}
     //  if (!configObj.columns) configObj.columns = true // we don't allow false for columns; it results in arrays instead of objects for each record
     // creating a stream through which each file will pass - a new instance will be created and invoked for each file 
     // see https://stackoverflow.com/a/52432089/5578474 for a note on the "this" param
     const strm = through2.obj(function (file, encoding, cb) {
         const self = this;
         let returnErr = null;
-        let stringifier;
-        try {
-            stringifier = stringify(configObj);
-        }
-        catch (err) {
-            returnErr = new PluginError(PLUGIN_NAME, err);
-        }
         // preprocess line object
         const handleLine = (lineObj, _streamName) => {
             lineObj = lineObj.record;
             return lineObj;
         };
-        function newTransformer(streamName) {
-            let transformer = through2.obj(); // new transform stream, in object mode
-            // transformer is designed to follow split2, which emits one line at a time, so dataObj is an Object. We will finish by converting dataObj to a text line
-            transformer._transform = function (dataLine, encoding, callback) {
-                let returnErr = null;
-                try {
-                    let dataObj;
-                    if (dataLine.trim() != "")
-                        dataObj = JSON.parse(dataLine);
-                    let handledObj = handleLine(dataObj, streamName);
-                    if (handledObj) {
-                        let handledLine = JSON.stringify(handledObj);
-                        log.debug(handledLine);
-                        this.push(handledObj);
-                    }
-                }
-                catch (err) {
-                    returnErr = new PluginError(PLUGIN_NAME, err);
-                }
-                callback(returnErr);
-            };
-            return transformer;
-        }
         // set the stream name to the file name (without extension)
         let streamName = file.stem;
-        if (file.isNull() || returnErr) {
-            // return empty file
-            return cb(returnErr, file);
-        }
-        else if (file.isBuffer()) {
+        if (file.isBuffer()) {
             try {
                 const linesArray = file.contents.toString().split('\n');
                 let tempLine;
@@ -78,9 +124,8 @@ function targetCsv(configObj) {
                             continue;
                         let lineObj = JSON.parse(linesArray[dataIdx]);
                         tempLine = handleLine(lineObj, streamName);
+                        //console.log(tempLine)
                         if (tempLine) {
-                            let tempStr = JSON.stringify(tempLine);
-                            log.debug(tempStr);
                             resultArray.push(tempLine);
                         }
                     }
@@ -88,48 +133,73 @@ function targetCsv(configObj) {
                         returnErr = new PluginError(PLUGIN_NAME, err);
                     }
                 }
-                stringify(resultArray, configObj, function (err, data) {
-                    // this callback function runs when the stringify finishes its work, returning an array of CSV lines
-                    if (err)
-                        returnErr = new PluginError(PLUGIN_NAME, err);
-                    else
-                        file.contents = Buffer.from(data);
-                    // we are done with file processing. Pass the processed file along
-                    log.debug('calling callback');
-                    cb(returnErr, file);
-                });
+                let inputObj = resultArray;
+                //the input object here is always an instance of array
+                //as a result configobj always has to be inside the rootarray
+                let mappedArray = transformer(inputObj, configObj, changeMap);
+                let data = mappedArray.join('');
+                file.contents = Buffer.from(data);
+                //file.contents = Buffer.from(data)
+                return cb(returnErr, file);
             }
             catch (err) {
                 returnErr = new PluginError(PLUGIN_NAME, err);
                 return cb(returnErr, file);
             }
         }
-        else if (file.isStream()) {
-            file.contents = file.contents
-                // split plugin will split the file into lines
-                .pipe(split())
-                .pipe(newTransformer(streamName))
-                .pipe(stringifier)
-                .on('end', function () {
-                // DON'T CALL THIS HERE. It MAY work, if the job is small enough. But it needs to be called after the stream is SET UP, not when the streaming is DONE.
-                // Calling the callback here instead of below may result in data hanging in the stream--not sure of the technical term, but dest() creates no file, or the file is blank
-                // cb(returnErr, file);
-                // log.debug('calling callback')    
-                log.debug('csv parser is done');
-            })
-                // .on('data', function (data:any, err: any) {
-                //   log.debug(data)
-                // })
-                .on('error', function (err) {
-                log.error(err);
-                self.emit('error', new PluginError(PLUGIN_NAME, err));
-            });
-            // after our stream is set up (not necesarily finished) we call the callback
-            log.debug('calling callback');
-            cb(returnErr, file);
+    });
+    return strm;
+}
+exports.targetJson = targetJson;
+function transformJson(configObj, changeMap) {
+    const strm = through2.obj(function (file, encoding, cb) {
+        let returnErr = null;
+        if (file.isBuffer()) {
+            let inputObj = JSON.parse(file.contents.toString());
+            let mappedArray = transformer(inputObj, configObj, changeMap);
+            //let data:string = JSON.stringify(mappedArray)
+            let data = mappedArray.join('');
+            file.contents = Buffer.from(data);
+            //file.contents = Buffer.from(data)
+            return cb(returnErr, file);
         }
     });
     return strm;
 }
-exports.targetCsv = targetCsv;
+exports.transformJson = transformJson;
+function tapJson(configObj, changeMap) {
+    const strm = through2.obj(function (file, encoding, cb) {
+        let returnErr = null;
+        let streamName = file.stemc;
+        const handleLine = (lineObj, _streamName) => {
+            let newObj = createRecord(lineObj, _streamName);
+            lineObj = newObj;
+            return lineObj;
+        };
+        if (file.isBuffer()) {
+            let inputObj = JSON.parse(file.contents.toString());
+            let mappedArray = transformer(inputObj, configObj, changeMap);
+            let joinedArray = mappedArray.join(''); //need to join the mappedArray otherwiese it treats ',' and '[]' as separate object
+            mappedArray = JSON.parse(joinedArray);
+            let resultArray = [];
+            if (mappedArray instanceof Array) {
+                for (let i in mappedArray) {
+                    let handleObj = handleLine(mappedArray[i], streamName);
+                    let tempLine = JSON.stringify(handleObj);
+                    if (i != "0") {
+                        resultArray.push('\n');
+                    }
+                    if (tempLine) {
+                        resultArray.push(tempLine);
+                    }
+                }
+            }
+            let data = resultArray.join('');
+            file.contents = Buffer.from(data);
+            return cb(returnErr, file);
+        }
+    });
+    return strm;
+}
+exports.tapJson = tapJson;
 //# sourceMappingURL=plugin.js.map

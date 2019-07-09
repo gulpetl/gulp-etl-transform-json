@@ -19,34 +19,6 @@
             "env": {"DEBUG_LEVEL":"info"}
         },
         {        
-            "name": "GulpTester Debug",
-            "type": "node",
-            "request": "launch",
-            "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
-            "stopOnEntry": false,
-            "args": ["--gulpfile", "./debug/gulpfile.ts", "default"],
-            "cwd": "${workspaceRoot}",
-            "runtimeArgs": [
-                "--nolazy", "-r", "ts-node/register"
-            ],
-            "console": "internalConsole",
-            "env": {"DEBUG_LEVEL":"debug"}
-        },
-        {        
-            "name": "GulpTester Debug - Buffer Mode",
-            "type": "node",
-            "request": "launch",
-            "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
-            "stopOnEntry": false,
-            "args": ["--gulpfile", "./debug/gulpfile.ts", "runtargetCsvBuffer"],
-            "cwd": "${workspaceRoot}",
-            "runtimeArgs": [
-                "--nolazy", "-r", "ts-node/register"
-            ],
-            "console": "internalConsole",
-            "env": {"DEBUG_LEVEL":"debug"}
-        },
-        {        
             "name": "runtransformJson",
             "type": "node",
             "request": "launch",
@@ -62,7 +34,7 @@
         },
 
         {        
-            "name": "transform-Oneinput-Onemap",
+            "name": "transform-testOneObject-mapOneObject",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -76,7 +48,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "transform-merge-Oneinput-Onemap",
+            "name": "transform-merge-testOneObject-mapOneObject",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -90,7 +62,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "transform-Oneinput-Arraymap",
+            "name": "transform-testOneObject-mapArray",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -104,7 +76,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "transform-merge-Oneinput-Arraymap",
+            "name": "transform-merge-testOneObject-mapArray",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -118,7 +90,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "transform-Arrayinput-Arraymap",
+            "name": "transform-testArray-mapArray",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -132,7 +104,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "transform-merge-Arrayinput-Arraymap",
+            "name": "transform-merge-testArray-mapArray",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -146,7 +118,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "transform-Arrayinput-Onemap",
+            "name": "transform-testArray-mapOneObject",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -160,7 +132,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "transform-merge-Arrayinput-Onemap",
+            "name": "transform-merge-testArray-mapOneObject",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -189,7 +161,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "target-ArrayInput-ArrayMap",
+            "name": "target-testArray-mapArray",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
@@ -217,7 +189,7 @@
             "env": {"DEBUG_LEVEL":"debug"}
         },
         {        
-            "name": "tap-ArrayInput-ArrayMap",
+            "name": "tap-testArray-mapArray",
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",

@@ -1,8 +1,8 @@
 {
-  "name": "gulp-etl-transform-csv",
-  "version": "1.0.3",
-  "repository": "https://github.com/gulpetl/gulp-etl-target-csv",
-  "description": "Convert CSV files to JSON compatible with gulp-etl",
+  "name": "gulp-etl-transform-json",
+  "version": "1.0.0",
+  "repository": "https://github.com/gulpetl/gulp-etl-transform-json",
+  "description": "Maps JSON files to new JSON compatible with gulp-etl",
   "main": "dist/js/plugin.js",
   "typings": "dist/types/plugin.d.ts",
   "files": [
@@ -13,10 +13,13 @@
     "test": "jest"
   },
   "author": "peterl@sbcotton.com",
+  "contributors": [
+    "Deepen Silwal"
+  ],
   "license": "MIT",
   "keywords": [
     "gulpplugin",
-    "csv",
+    "JSON",
     "gulp-etl"
   ],
   "homepage": "https://gulpetl.com",
@@ -29,6 +32,7 @@
     "pkginfo": "^0.4.1",
     "plugin-error": "^1.0.1",
     "qewd-transform-json": "^1.10.1",
+    "replace-ext": "^1.0.0",
     "split2": "^3.1.1",
     "through2": "^3.0.1",
     "vinyl": "^2.2.0"
