@@ -21,7 +21,7 @@ This is a **[gulp-etl](https://gulpetl.com/)** plugin, and as such it is a [gulp
 
 ### Usage
 **gulp-etl** plugins accept a configObj as the first parameter; the configObj will contain any info the plugin needs. For this plugin the configObj is the template/map. The plugin also contains another config other than template/map. The other config it takes in is called **merge**. What merge does is it merges source object and result object. The content of result object that we get after mapping is always different than input object. In order to create a result object similar to input object but only with the differences the **merge** config is used. For more info regarding **merge** click the link " <https://www.npmjs.com/package/merge>". The concept of **merge** is explained in diagram below:
-![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(1).PNG>)
+![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(1).png>)
 
 The JSON format files can be of different content, they may be just an object, instance of array containing object, or array of objects.
 The transformation specifically looks into four different cases the user might run into. These cases are described below: (although **target-json** takes in .ndjson as source it is transformed to JSON before passing to transformer)
@@ -29,11 +29,11 @@ The transformation specifically looks into four different cases the user might r
 1. The source JSON contains only one object and the template/map JSON also contains one object.
    ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram.PNG>)
 2. The source JSON contains only one object but the template/map JSON contains array of object.
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(6).PNG>)
+   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(6).png>)
 3. The source JSON is an array of object and template/map JSON is also an array of object. The "**qewd-transform-stream**" takes only objects. Therefore, when the input object is in the form of array of objects it is wrapped around **rootarray object**. For eg: **rootarray{ [ { },{ },... ] }** 
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(7).PNG>)
+   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(7).png>)
 4. The source JSON is an array of object but template/map JSON contains one object. The "**qewd-transform-stream**" takes only objects. Therefore, when the input object is in the form of array of objects it is wrapped around **rootarray object**. For eg: **rootarray{ [ { },{ },... ] }** 
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(8).PNG>)
+   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(8).png>)
 
 
 
