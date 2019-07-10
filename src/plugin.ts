@@ -173,28 +173,72 @@ export function targetJson(configObj: any, changeMap:any) {
 
 export function transformJson(configObj: any, changeMap:any){
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
+    const self = this
     let returnErr: any = null
+  
+    // preprocess line object
+    const targethandleLine = (lineObj: any, _streamName : string): object | null => {
+      lineObj = lineObj.record
+      return lineObj
+    }
+
+    // handleline to create message stream
+    const taphandleLine = (lineObj: any, _streamName : string): object | null => {
+      let newObj = createRecord(lineObj, _streamName)
+      lineObj = newObj
+      return lineObj
+    }
+
+    // set the stream name to the file name (without extension)
+    let streamName : string = file.stem
     if (file.isBuffer()) {
-      let inputObj = JSON.parse(file.contents.toString())
-      let mappedArray = transformer(inputObj, configObj, changeMap)
-      let resultArray = []
-      resultArray.push('[')
-      for(let i in mappedArray){
-        
-        if(i != "0"){
-          resultArray.push(',')
+      try {
+        const linesArray = (file.contents as Buffer).toString().split('\n')
+        let tempLine: any
+        let resultArray = [];
+        for (let dataIdx in linesArray) {
+          try {
+            if (linesArray[dataIdx].trim() == "") continue
+            let lineObj = JSON.parse(linesArray[dataIdx])
+            tempLine = targethandleLine(lineObj, streamName)
+            if (tempLine){
+              let mappedArray = transformer(tempLine, configObj, changeMap)
+              if(mappedArray instanceof Array){
+                for(let i in mappedArray){
+                  mappedArray[i] = JSON.parse(mappedArray[i])
+                  let handleObj = taphandleLine(mappedArray[i], streamName)
+                  let tempLine = JSON.stringify(handleObj)
+                  if(dataIdx != "0" || i != "0"){
+                    resultArray.push('\n');
+                  }
+                  if(tempLine){
+                    resultArray.push(tempLine)
+                  }
+                }
+              }
+              else{
+                let handleObj = taphandleLine(mappedArray, streamName)
+                let tempLine = JSON.stringify(handleObj)
+                resultArray.push(tempLine)
+              }
+            }
+          } catch (err) {
+            returnErr = new PluginError(PLUGIN_NAME, err);
+          }
         }
-        resultArray.push(mappedArray[i])
+        let data:string = resultArray.join('')
+        file.contents = Buffer.from(data)
+        file.path = replaceExt(file.path, '.json')
+        return cb(returnErr, file)
+
       }
-      resultArray.push(']')
-      //let data:string = JSON.stringify(mappedArray)
-     let data:string = resultArray.join('')
-      file.contents = Buffer.from(data)
-      //file.contents = Buffer.from(data)
-      file.path = replaceExt(file.path, '.json')
-      return cb(returnErr, file)
+      catch (err) {
+        returnErr = new PluginError(PLUGIN_NAME, err);
+        return cb(returnErr, file)        
+      }
 
     }
+
   })
   return strm
 }

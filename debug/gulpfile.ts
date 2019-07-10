@@ -70,7 +70,7 @@ function runtargetJson(callback: any) {
 function runtransformJson(callback: any) {
   log.info('gulp task starting for ' + PLUGIN_NAME)
   
-  return gulp.src(src,{buffer: true})
+  return gulp.src(srctarget,{buffer: true})
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)
@@ -82,7 +82,7 @@ function runtransformJson(callback: any) {
     //.pipe(targetJson(maps, mergeOriginal))
     //.pipe(tapJson(maps, mergeOriginal))
     .pipe(rename({
-      extname: "-"+ maprename + ".json",
+      extname: "-"+ maprename + ".ndjson",
     }))      
     .pipe(gulp.dest('../testdata/processed'))
     .on('data', function (file:Vinyl) {
@@ -176,14 +176,14 @@ exports.oneinputobjectarraymapobject = gulp.series(testOneObject, oneInputarrayM
 exports.oneinputobjectarraymapobjectmerge = gulp.series(testOneObject, switchmergeOriginal, oneInputarrayMap, runtransformJson)
 
 //input file with array of object is required
-exports.arrayinputobjectarraymapobject = gulp.series(testArrayofObject, arrayInputarrayMap, runtransformJson)
+exports.arrayinputobjectarraymapobject = gulp.series(testArrayofObjecttarget,oneInputarrayMap, runtransformJson)
 //inorder to merge mapped object with original object and only get the final merged file
-exports.arrayinputobjectarraymapobjectmerge = gulp.series(testArrayofObject, switchmergeOriginal, arrayInputarrayMap, runtransformJson)
+exports.arrayinputobjectarraymapobjectmerge = gulp.series(testArrayofObjecttarget, switchmergeOriginal, oneInputarrayMap, runtransformJson)
 
 //input file with array of object is required
-exports.arrayinputobjectonemapobject = gulp.series(testArrayofObject, arrayInputoneMap, runtransformJson)
+exports.arrayinputobjectonemapobject = gulp.series(testArrayofObjecttarget, oneInputMap, runtransformJson)
 //inorder to merge mapped object with original object and only get the final merged file
-exports.arrayinputobjectonemapobjectmerge = gulp.series(testArrayofObject, switchmergeOriginal, arrayInputoneMap, runtransformJson)
+exports.arrayinputobjectonemapobjectmerge = gulp.series(testArrayofObjecttarget, switchmergeOriginal, oneInputMap, runtransformJson)
 
 
 
