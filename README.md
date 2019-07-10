@@ -27,7 +27,7 @@ The JSON format files can be of different content, they may be just an object, i
 The transformation specifically looks into four different cases the user might run into. These cases are described below: (although **target-json** takes in .ndjson as source it is transformed to JSON before passing to transformer)
 
 1. The source JSON contains only one object and the template/map JSON also contains one object.
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram.PNG>)
+   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram.png>)
 2. The source JSON contains only one object but the template/map JSON contains array of object.
    ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(6).png>)
 3. The source JSON is an array of object and template/map JSON is also an array of object. The "**qewd-transform-stream**" takes only objects. Therefore, when the input object is in the form of array of objects it is wrapped around **rootarray object**. For eg: **rootarray{ [ { },{ },... ] }** 
