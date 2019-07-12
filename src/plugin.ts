@@ -12,6 +12,7 @@ const split = require('split2')
 
 var transform = require('qewd-transform-json').transform
 var merge = require('merge'), original, cloned
+var replaceExt = require('replace-ext');
 
 /** wrap incoming recordObject in a Singer RECORD Message object*/
 function createRecord(recordObject:Object, streamName: string) : any {
@@ -29,88 +30,73 @@ function transformer(inputObj:any, configObj:any, changeMap:any){
   
 
   let resultArray = []
-  resultArray.push('[')
-      if(newObj instanceof Array){//this is the case if you have array of maps
+    if(newObj instanceof Array){//this is the case if you have array of maps
         
-        for (let i in newObj){
+      for (let i in newObj){
          
-          //root Array is only used when input object is an instance of array
-          if (newObj[i].__rootArray) {//remove the wrapped rootArray 
-            var tempObj = newObj[i].__rootArray
-            if(tempObj instanceof Array){
-              for (let j in tempObj){
-                
-                if (changeMap == true){
-                  if(inputObj.__rootArray){
-                    inputObj = inputObj.__rootArray
-                  }  
-                  tempObj[j] = merge(inputObj[j], tempObj[j])//merged mapped object with one input object but array of maps 
-                }
-                //let handledObj = handleLine(tempObj[j], streamName)
-                let tempLine = JSON.stringify(tempObj[j])
-                if(j != "0" || i != "0"){
-                  resultArray.push(',');
-                }
-                if(tempLine){
-                  resultArray.push(tempLine);  
-                } 
+        //root Array is only used when input object is an instance of array
+        if (newObj[i].__rootArray) {//remove the wrapped rootArray 
+          var tempObj = newObj[i].__rootArray
+          if(tempObj instanceof Array){
+            for (let j in tempObj){   
+              if (changeMap == true){
+                if(inputObj.__rootArray){
+                  inputObj = inputObj.__rootArray
+                }  
+                tempObj[j] = merge(inputObj[j], tempObj[j])//merged mapped object with one input object but array of maps 
               }
+              //let handledObj = handleLine(tempObj[j], streamName)
+              let tempLine = JSON.stringify(tempObj[j])
+              if(tempLine){
+                resultArray.push(tempLine);  
+              } 
             }
-            
           }
-          else{
             
-            if (changeMap == true){//case for one input object but array of maps
-              newObj[i] = merge(inputObj, newObj[i])//once merged changes the input object to new merged object
-            }
-            //let handledObj = handleLine(newObj[i], streamName)
-            let tempLine = JSON.stringify(newObj[i]) 
-            if(i != "0"){
-              resultArray.push(',');
-            }
-            if(tempLine){
-              resultArray.push(tempLine);  
-            } 
+        }
+        else{
             
+          if (changeMap == true){//case for one input object but array of maps
+            newObj[i] = merge(inputObj, newObj[i])//once merged changes the input object to new merged object
           }
+          //let handledObj = handleLine(newObj[i], streamName)
+          let tempLine = JSON.stringify(newObj[i]) 
+          if(tempLine){
+            resultArray.push(tempLine);  
+          } 
+            
         }
       }
-      else{
-        if (newObj.__rootArray) {//case for array of input object but one map
-          newObj = newObj.__rootArray
-        }
-        if (newObj instanceof Array) {
-          for (let i in newObj) {
+    }
+    else{
+      if (newObj.__rootArray) {//case for array of input object but one map
+        newObj = newObj.__rootArray
+      }
+      if (newObj instanceof Array) {
+        for (let i in newObj) {
             
-            if (changeMap == true){
-              if(inputObj.__rootArray){
-                inputObj = inputObj.__rootArray
-              } 
-              newObj[i] = merge(inputObj[i], newObj[i])//merged mapped object with input object for one objects but array of maps
-            }
-            //let handledObj = handleLine(newObj[i], streamName)
-            let tempLine = JSON.stringify(newObj[i])
-            if(i != "0"){
-              resultArray.push(',');
-            }
-            if(tempLine){
-              resultArray.push(tempLine);  
+          if (changeMap == true){
+            if(inputObj.__rootArray){
+              inputObj = inputObj.__rootArray
             } 
+            newObj[i] = merge(inputObj[i], newObj[i])//merged mapped object with input object for one objects but array of maps
+          }
+          let tempLine = JSON.stringify(newObj[i])
+          if(tempLine){
+             resultArray.push(tempLine);  
           } 
         } 
-        else {//this is  the case of one object and one map
+      } 
+      else {//this is  the case of one object and one map
           
-          if (changeMap == true){
-            newObj = merge(inputObj, newObj)
-          }
-          //let handledObj = handleLine(newObj, streamName)
-          let tempLine = JSON.stringify(newObj)
-          resultArray.push(tempLine);
+        if (changeMap == true){
+          newObj = merge(inputObj, newObj)
         }
-
+        let tempLine = JSON.stringify(newObj)
+        resultArray.push(tempLine);
       }
-    resultArray.push(']')
 
+    }
 
   return resultArray
   
@@ -141,7 +127,9 @@ export function targetJson(configObj: any, changeMap:any) {
         const linesArray = (file.contents as Buffer).toString().split('\n')
         let tempLine: any
         let resultArray = [];
+        let tempresultArray = [];
         // we'll call handleLine on each line
+        tempresultArray.push('[')
         for (let dataIdx in linesArray) {
           try {
             if (linesArray[dataIdx].trim() == "") continue
@@ -149,26 +137,29 @@ export function targetJson(configObj: any, changeMap:any) {
             tempLine = handleLine(lineObj, streamName)
             //console.log(tempLine)
             if (tempLine){
-              resultArray.push(tempLine);
+              let mapObj = transformer(tempLine, configObj, changeMap)
+              
+              if(dataIdx != "0"){
+                tempresultArray.push(',')
+              }              
+              tempresultArray.push(mapObj)
+
+              //resultArray.push(tempLine);
             }
           } catch (err) {
             returnErr = new PluginError(PLUGIN_NAME, err);
           }
         }
-        
-        let inputObj = resultArray
-       //the input object here is always an instance of array
-       //as a result configobj always has to be inside the rootarray
-        let mappedArray = transformer(inputObj, configObj, changeMap)
-        
-        let data:string = mappedArray.join('')
-        file.contents = Buffer.from(data)
-        //file.contents = Buffer.from(data)
+        tempresultArray.push(']')
+        let tempdata:string = tempresultArray.join('')
+        file.contents = Buffer.from(tempdata)
+        file.path = replaceExt(file.path, '.json')
         return cb(returnErr, file)
 
       }
       catch (err) {
         returnErr = new PluginError(PLUGIN_NAME, err);
+        file.path = replaceExt(file.path, '.json')
         return cb(returnErr, file)        
       }
 
@@ -182,18 +173,72 @@ export function targetJson(configObj: any, changeMap:any) {
 
 export function transformJson(configObj: any, changeMap:any){
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
+    const self = this
     let returnErr: any = null
-    if (file.isBuffer()) {
-      let inputObj = JSON.parse(file.contents.toString())
-      let mappedArray = transformer(inputObj, configObj, changeMap)
+  
+    // preprocess line object
+    const targethandleLine = (lineObj: any, _streamName : string): object | null => {
+      lineObj = lineObj.record
+      return lineObj
+    }
 
-      //let data:string = JSON.stringify(mappedArray)
-     let data:string = mappedArray.join('')
-      file.contents = Buffer.from(data)
-        //file.contents = Buffer.from(data)
-      return cb(returnErr, file)
+    // handleline to create message stream
+    const taphandleLine = (lineObj: any, _streamName : string): object | null => {
+      let newObj = createRecord(lineObj, _streamName)
+      lineObj = newObj
+      return lineObj
+    }
+
+    // set the stream name to the file name (without extension)
+    let streamName : string = file.stem
+    if (file.isBuffer()) {
+      try {
+        const linesArray = (file.contents as Buffer).toString().split('\n')
+        let tempLine: any
+        let resultArray = [];
+        for (let dataIdx in linesArray) {
+          try {
+            if (linesArray[dataIdx].trim() == "") continue
+            let lineObj = JSON.parse(linesArray[dataIdx])
+            tempLine = targethandleLine(lineObj, streamName)
+            if (tempLine){
+              let mappedArray = transformer(tempLine, configObj, changeMap)
+              if(mappedArray instanceof Array){
+                for(let i in mappedArray){
+                  mappedArray[i] = JSON.parse(mappedArray[i])
+                  let handleObj = taphandleLine(mappedArray[i], streamName)
+                  let tempLine = JSON.stringify(handleObj)
+                  if(dataIdx != "0" || i != "0"){
+                    resultArray.push('\n');
+                  }
+                  if(tempLine){
+                    resultArray.push(tempLine)
+                  }
+                }
+              }
+              else{
+                let handleObj = taphandleLine(mappedArray, streamName)
+                let tempLine = JSON.stringify(handleObj)
+                resultArray.push(tempLine)
+              }
+            }
+          } catch (err) {
+            returnErr = new PluginError(PLUGIN_NAME, err);
+          }
+        }
+        let data:string = resultArray.join('')
+        file.contents = Buffer.from(data)
+        file.path = replaceExt(file.path, '.json')
+        return cb(returnErr, file)
+
+      }
+      catch (err) {
+        returnErr = new PluginError(PLUGIN_NAME, err);
+        return cb(returnErr, file)        
+      }
 
     }
+
   })
   return strm
 }
@@ -215,11 +260,10 @@ export function tapJson(configObj: any, changeMap:any){
     if (file.isBuffer()) {
       let inputObj = JSON.parse(file.contents.toString())
       let mappedArray = transformer(inputObj, configObj, changeMap)
-      let joinedArray:string = mappedArray.join('')//need to join the mappedArray otherwiese it treats ',' and '[]' as separate object
-      mappedArray = JSON.parse(joinedArray)
       let resultArray = []
       if(mappedArray instanceof Array){
         for(let i in mappedArray){
+          mappedArray[i] = JSON.parse(mappedArray[i])
           let handleObj = handleLine(mappedArray[i], streamName)
           let tempLine = JSON.stringify(handleObj)
           if(i != "0"){
@@ -230,9 +274,15 @@ export function tapJson(configObj: any, changeMap:any){
           }
         }
       }
+      else{
+        let handleObj = handleLine(mappedArray, streamName)
+        let tempLine = JSON.stringify(handleObj)
+        resultArray.push(tempLine)
+      }
 
       let data:string = resultArray.join('')
       file.contents = Buffer.from(data)
+      file.path = replaceExt(file.path, '.ndjson')
       return cb(returnErr, file)
 
     }
