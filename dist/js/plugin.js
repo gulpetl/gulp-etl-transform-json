@@ -7,10 +7,9 @@ const PLUGIN_NAME = module.exports.name;
 const loglevel = require("loglevel");
 const log = loglevel.getLogger(PLUGIN_NAME); // get a logger instance based on the project name
 log.setLevel((process.env.DEBUG_LEVEL || 'warn'));
-const stringify = require('csv-stringify');
-const split = require('split2');
 var transform = require('qewd-transform-json').transform;
 var merge = require('merge'), original, cloned;
+var replaceExt = require('replace-ext');
 /** wrap incoming recordObject in a Singer RECORD Message object*/
 function createRecord(recordObject, streamName) {
     return { type: "RECORD", stream: streamName, record: recordObject };
@@ -23,7 +22,6 @@ function transformer(inputObj, configObj, changeMap) {
     }
     var newObj = transform(configObj, inputObj);
     let resultArray = [];
-    resultArray.push('[');
     if (newObj instanceof Array) { //this is the case if you have array of maps
         for (let i in newObj) {
             //root Array is only used when input object is an instance of array
@@ -39,9 +37,6 @@ function transformer(inputObj, configObj, changeMap) {
                         }
                         //let handledObj = handleLine(tempObj[j], streamName)
                         let tempLine = JSON.stringify(tempObj[j]);
-                        if (j != "0" || i != "0") {
-                            resultArray.push(',');
-                        }
                         if (tempLine) {
                             resultArray.push(tempLine);
                         }
@@ -54,9 +49,6 @@ function transformer(inputObj, configObj, changeMap) {
                 }
                 //let handledObj = handleLine(newObj[i], streamName)
                 let tempLine = JSON.stringify(newObj[i]);
-                if (i != "0") {
-                    resultArray.push(',');
-                }
                 if (tempLine) {
                     resultArray.push(tempLine);
                 }
@@ -75,11 +67,7 @@ function transformer(inputObj, configObj, changeMap) {
                     }
                     newObj[i] = merge(inputObj[i], newObj[i]); //merged mapped object with input object for one objects but array of maps
                 }
-                //let handledObj = handleLine(newObj[i], streamName)
                 let tempLine = JSON.stringify(newObj[i]);
-                if (i != "0") {
-                    resultArray.push(',');
-                }
                 if (tempLine) {
                     resultArray.push(tempLine);
                 }
@@ -89,12 +77,10 @@ function transformer(inputObj, configObj, changeMap) {
             if (changeMap == true) {
                 newObj = merge(inputObj, newObj);
             }
-            //let handledObj = handleLine(newObj, streamName)
             let tempLine = JSON.stringify(newObj);
             resultArray.push(tempLine);
         }
     }
-    resultArray.push(']');
     return resultArray;
 }
 function targetJson(configObj, changeMap) {
@@ -117,7 +103,9 @@ function targetJson(configObj, changeMap) {
                 const linesArray = file.contents.toString().split('\n');
                 let tempLine;
                 let resultArray = [];
+                let tempresultArray = [];
                 // we'll call handleLine on each line
+                tempresultArray.push('[');
                 for (let dataIdx in linesArray) {
                     try {
                         if (linesArray[dataIdx].trim() == "")
@@ -126,24 +114,27 @@ function targetJson(configObj, changeMap) {
                         tempLine = handleLine(lineObj, streamName);
                         //console.log(tempLine)
                         if (tempLine) {
-                            resultArray.push(tempLine);
+                            let mapObj = transformer(tempLine, configObj, changeMap);
+                            if (dataIdx != "0") {
+                                tempresultArray.push(',');
+                            }
+                            tempresultArray.push(mapObj);
+                            //resultArray.push(tempLine);
                         }
                     }
                     catch (err) {
                         returnErr = new PluginError(PLUGIN_NAME, err);
                     }
                 }
-                let inputObj = resultArray;
-                //the input object here is always an instance of array
-                //as a result configobj always has to be inside the rootarray
-                let mappedArray = transformer(inputObj, configObj, changeMap);
-                let data = mappedArray.join('');
-                file.contents = Buffer.from(data);
-                //file.contents = Buffer.from(data)
+                tempresultArray.push(']');
+                let tempdata = tempresultArray.join('');
+                file.contents = Buffer.from(tempdata);
+                file.path = replaceExt(file.path, '.json');
                 return cb(returnErr, file);
             }
             catch (err) {
                 returnErr = new PluginError(PLUGIN_NAME, err);
+                file.path = replaceExt(file.path, '.json');
                 return cb(returnErr, file);
             }
         }
@@ -153,15 +144,67 @@ function targetJson(configObj, changeMap) {
 exports.targetJson = targetJson;
 function transformJson(configObj, changeMap) {
     const strm = through2.obj(function (file, encoding, cb) {
+        const self = this;
         let returnErr = null;
+        // preprocess line object
+        const targethandleLine = (lineObj, _streamName) => {
+            lineObj = lineObj.record;
+            return lineObj;
+        };
+        // handleline to create message stream
+        const taphandleLine = (lineObj, _streamName) => {
+            let newObj = createRecord(lineObj, _streamName);
+            lineObj = newObj;
+            return lineObj;
+        };
+        // set the stream name to the file name (without extension)
+        let streamName = file.stem;
         if (file.isBuffer()) {
-            let inputObj = JSON.parse(file.contents.toString());
-            let mappedArray = transformer(inputObj, configObj, changeMap);
-            //let data:string = JSON.stringify(mappedArray)
-            let data = mappedArray.join('');
-            file.contents = Buffer.from(data);
-            //file.contents = Buffer.from(data)
-            return cb(returnErr, file);
+            try {
+                const linesArray = file.contents.toString().split('\n');
+                let tempLine;
+                let resultArray = [];
+                for (let dataIdx in linesArray) {
+                    try {
+                        if (linesArray[dataIdx].trim() == "")
+                            continue;
+                        let lineObj = JSON.parse(linesArray[dataIdx]);
+                        tempLine = targethandleLine(lineObj, streamName);
+                        if (tempLine) {
+                            let mappedArray = transformer(tempLine, configObj, changeMap);
+                            if (mappedArray instanceof Array) {
+                                for (let i in mappedArray) {
+                                    mappedArray[i] = JSON.parse(mappedArray[i]);
+                                    let handleObj = taphandleLine(mappedArray[i], streamName);
+                                    let tempLine = JSON.stringify(handleObj);
+                                    if (dataIdx != "0" || i != "0") {
+                                        resultArray.push('\n');
+                                    }
+                                    if (tempLine) {
+                                        resultArray.push(tempLine);
+                                    }
+                                }
+                            }
+                            else {
+                                let handleObj = taphandleLine(mappedArray, streamName);
+                                let tempLine = JSON.stringify(handleObj);
+                                resultArray.push(tempLine);
+                            }
+                        }
+                    }
+                    catch (err) {
+                        returnErr = new PluginError(PLUGIN_NAME, err);
+                    }
+                }
+                let data = resultArray.join('');
+                file.contents = Buffer.from(data);
+                file.path = replaceExt(file.path, '.json');
+                return cb(returnErr, file);
+            }
+            catch (err) {
+                returnErr = new PluginError(PLUGIN_NAME, err);
+                return cb(returnErr, file);
+            }
         }
     });
     return strm;
@@ -179,11 +222,10 @@ function tapJson(configObj, changeMap) {
         if (file.isBuffer()) {
             let inputObj = JSON.parse(file.contents.toString());
             let mappedArray = transformer(inputObj, configObj, changeMap);
-            let joinedArray = mappedArray.join(''); //need to join the mappedArray otherwiese it treats ',' and '[]' as separate object
-            mappedArray = JSON.parse(joinedArray);
             let resultArray = [];
             if (mappedArray instanceof Array) {
                 for (let i in mappedArray) {
+                    mappedArray[i] = JSON.parse(mappedArray[i]);
                     let handleObj = handleLine(mappedArray[i], streamName);
                     let tempLine = JSON.stringify(handleObj);
                     if (i != "0") {
@@ -194,8 +236,14 @@ function tapJson(configObj, changeMap) {
                     }
                 }
             }
+            else {
+                let handleObj = handleLine(mappedArray, streamName);
+                let tempLine = JSON.stringify(handleObj);
+                resultArray.push(tempLine);
+            }
             let data = resultArray.join('');
             file.contents = Buffer.from(data);
+            file.path = replaceExt(file.path, '.ndjson');
             return cb(returnErr, file);
         }
     });
