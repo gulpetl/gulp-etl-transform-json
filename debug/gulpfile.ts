@@ -18,7 +18,7 @@ const PLUGIN_NAME = module.exports.name;
 
 import Vinyl = require('vinyl') 
 
-var maps = require('../testdata/maps/map-empty.json');
+var loadedMap = require('../testdata/maps/map-empty.json');
 var mapext = 'map-empty.json';
 var maprename ='map-empty';
 
@@ -49,7 +49,7 @@ function runtargetJson(callback: any) {
       log.info('Starting processing on ' + file.basename  + " and mapping to " + mapext)
     })  
     //.pipe(transformJson(maps, mergeOriginal))  
-    .pipe(targetJson(maps, mergeOriginal))
+    .pipe(targetJson({map:loadedMap, changeMap:mergeOriginal}))
     //.pipe(tapJson(maps, mergeOriginal))
     .pipe(rename({
       extname: "-"+ maprename + ".json",
@@ -78,7 +78,7 @@ function runtransformJson(callback: any) {
     .on('data', function (file:Vinyl) {
       log.info('Starting processing on ' + file.basename  + " and mapping to " + mapext)
     })  
-    .pipe(transformJson(maps, mergeOriginal))  
+    .pipe(transformJson({map:loadedMap, changeMap:mergeOriginal}))  
     //.pipe(targetJson(maps, mergeOriginal))
     //.pipe(tapJson(maps, mergeOriginal))
     .pipe(rename({
@@ -108,7 +108,7 @@ function runtapJson(callback: any) {
     })  
     //.pipe(transformJson(maps, mergeOriginal))  
     //.pipe(targetJson(maps, mergeOriginal))
-    .pipe(tapJson(maps, mergeOriginal))
+    .pipe(tapJson({map:loadedMap, changeMap:mergeOriginal}))
     .pipe(rename({
       extname: "-"+ maprename + ".ndjson",
     }))      
@@ -136,28 +136,28 @@ function testArrayofObject(callback: any) {
 }
 
 function oneInputMap(callback: any) {
-  maps = require('../testdata/maps/map-oneobject.json');
+  loadedMap = require('../testdata/maps/map-oneobject.json');
   mapext = 'map-oneobject.json';
   maprename = 'map-oneobject';
   callback();
 }
 
 function oneInputarrayMap(callback: any) {
-  maps = require('../testdata/maps/map-array.json');
+  loadedMap = require('../testdata/maps/map-array.json');
   mapext= 'map-array.json';
   maprename = 'map-array';
   callback();
 }
 
 function arrayInputarrayMap(callback: any) {
-  maps = require('../testdata/maps/map-array-rootarray.json');
+  loadedMap = require('../testdata/maps/map-array-rootarray.json');
   mapext = 'map-array-rootarray.json';
   maprename= 'map-array-rootarray';
   callback();
 }
 
 function arrayInputoneMap(callback: any) {
-  maps = require('../testdata/maps/map-oneobject-rootarray.json');
+  loadedMap = require('../testdata/maps/map-oneobject-rootarray.json');
   mapext = 'map-oneobject-rootarray.json';
   maprename = 'map-oneobject-rootarray';
   callback();
