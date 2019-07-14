@@ -2,88 +2,98 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const through2 = require('through2');
 const PluginError = require("plugin-error");
-const pkginfo = require('pkginfo')(module); // project package.json info into module.exports
+require('pkginfo')(module); // project package.json info into module.exports
 const PLUGIN_NAME = module.exports.name;
 const loglevel = require("loglevel");
 const log = loglevel.getLogger(PLUGIN_NAME); // get a logger instance based on the project name
 log.setLevel((process.env.DEBUG_LEVEL || 'warn'));
-var transform = require('qewd-transform-json').transform;
-var merge = require('merge'), original, cloned;
+var qewdTransform = require('qewd-transform-json').transform;
+var merge = require('merge');
 var replaceExt = require('replace-ext');
 /** wrap incoming recordObject in a Singer RECORD Message object*/
 function createRecord(recordObject, streamName) {
     return { type: "RECORD", stream: streamName, record: recordObject };
 }
-function transformer(inputObj, configObj, changeMap) {
-    if (inputObj instanceof Array) {
-        inputObj = {
-            __rootArray: inputObj
+// preprocess line object
+const targethandleLine = (lineObj, _streamName, configObj) => {
+    if (!configObj || !configObj.mapFullStreamObj) {
+        lineObj = lineObj.record;
+    }
+    return lineObj;
+};
+// handleline to create message stream
+const taphandleLine = (lineObj, _streamName) => {
+    let newObj = createRecord(lineObj, _streamName);
+    lineObj = newObj;
+    return lineObj;
+};
+class ConfigObj {
+    constructor(initial) {
+        /** acts as a "recipe" for creating new object/array using an inputObj as the source */
+        this.map = {};
+        /** if true, map will change the incoming object; if false, the result of the map operation will replace the incoming object */
+        this.changeMap = true;
+        /** if true, modes which receive a Message Stream (target and transform) will map against the full Message Stream object instead of just the record portion */
+        this.mapFullStreamObj = false;
+        if (initial.map !== undefined && initial.map !== null && (initial.map instanceof Array || initial.map instanceof Object)) {
+            this.map = initial.map;
+        }
+        if (!initial.changeMap) {
+            this.changeMap = false; // falsey -> false
+        }
+        if (initial.mapFullStreamObj) {
+            this.mapFullStreamObj = true; // truthy -> true
+        }
+    }
+}
+function doMerge(inputObj, newObj, configObj) {
+    if (configObj.changeMap) {
+        newObj = merge(inputObj, newObj);
+    }
+    return newObj;
+}
+function unwrapAndMerge(newObj, inputObjOrArr, configObj) {
+    if (newObj.__rootArray) { // unwrap __rootArray:   {__rootArray:[...]}  ->  [...] 
+        newObj = newObj.__rootArray;
+    }
+    if (newObj instanceof Array) {
+        for (let i in newObj) {
+            if (inputObjOrArr instanceof Array)
+                throw new PluginError(PLUGIN_NAME, 'Array expected'); // should never happen; code below assumes an array here
+            return doMerge(inputObjOrArr[i], newObj[i], configObj);
+        }
+    }
+    else { //this is  the case of one object and one map
+        return doMerge(inputObjOrArr, newObj, configObj);
+    }
+}
+function transformer(inputObjOrArr, configObj) {
+    configObj = new ConfigObj(configObj); // guarantee that we have a valid ConfigObj
+    let resultArray = [];
+    // qewdTransform works with objects, not arrays, so if inputObj is an array we wrap it in an object
+    if (inputObjOrArr instanceof Array) {
+        inputObjOrArr = {
+            __rootArray: inputObjOrArr
         };
     }
-    var newObj = transform(configObj, inputObj);
-    let resultArray = [];
+    var newObj = qewdTransform(configObj.map, inputObjOrArr);
+    // if we changed inputObjOrArray put it back like we found it
+    if (inputObjOrArr.__rootArray) {
+        inputObjOrArr = inputObjOrArr.__rootArray;
+    }
     if (newObj instanceof Array) { //this is the case if you have array of maps
         for (let i in newObj) {
-            //root Array is only used when input object is an instance of array
-            if (newObj[i].__rootArray) { //remove the wrapped rootArray 
-                var tempObj = newObj[i].__rootArray;
-                if (tempObj instanceof Array) {
-                    for (let j in tempObj) {
-                        if (changeMap == true) {
-                            if (inputObj.__rootArray) {
-                                inputObj = inputObj.__rootArray;
-                            }
-                            tempObj[j] = merge(inputObj[j], tempObj[j]); //merged mapped object with one input object but array of maps 
-                        }
-                        //let handledObj = handleLine(tempObj[j], streamName)
-                        let tempLine = JSON.stringify(tempObj[j]);
-                        if (tempLine) {
-                            resultArray.push(tempLine);
-                        }
-                    }
-                }
-            }
-            else {
-                if (changeMap == true) { //case for one input object but array of maps
-                    newObj[i] = merge(inputObj, newObj[i]); //once merged changes the input object to new merged object
-                }
-                //let handledObj = handleLine(newObj[i], streamName)
-                let tempLine = JSON.stringify(newObj[i]);
-                if (tempLine) {
-                    resultArray.push(tempLine);
-                }
-            }
-        }
-    }
-    else {
-        if (newObj.__rootArray) { //case for array of input object but one map
-            newObj = newObj.__rootArray;
-        }
-        if (newObj instanceof Array) {
-            for (let i in newObj) {
-                if (changeMap == true) {
-                    if (inputObj.__rootArray) {
-                        inputObj = inputObj.__rootArray;
-                    }
-                    newObj[i] = merge(inputObj[i], newObj[i]); //merged mapped object with input object for one objects but array of maps
-                }
-                let tempLine = JSON.stringify(newObj[i]);
-                if (tempLine) {
-                    resultArray.push(tempLine);
-                }
-            }
-        }
-        else { //this is  the case of one object and one map
-            if (changeMap == true) {
-                newObj = merge(inputObj, newObj);
-            }
-            let tempLine = JSON.stringify(newObj);
+            let tempLine = JSON.stringify(unwrapAndMerge(newObj[i], inputObjOrArr, configObj));
             resultArray.push(tempLine);
         }
     }
+    else {
+        let tempLine = JSON.stringify(unwrapAndMerge(newObj, inputObjOrArr, configObj));
+        resultArray.push(tempLine);
+    }
     return resultArray;
 }
-function targetJson(configObj, changeMap) {
+function targetJson(configObj) {
     //if (!configObj) configObj = {}
     //  if (!configObj.columns) configObj.columns = true // we don't allow false for columns; it results in arrays instead of objects for each record
     // creating a stream through which each file will pass - a new instance will be created and invoked for each file 
@@ -91,11 +101,6 @@ function targetJson(configObj, changeMap) {
     const strm = through2.obj(function (file, encoding, cb) {
         const self = this;
         let returnErr = null;
-        // preprocess line object
-        const handleLine = (lineObj, _streamName) => {
-            lineObj = lineObj.record;
-            return lineObj;
-        };
         // set the stream name to the file name (without extension)
         let streamName = file.stem;
         if (file.isBuffer()) {
@@ -111,10 +116,10 @@ function targetJson(configObj, changeMap) {
                         if (linesArray[dataIdx].trim() == "")
                             continue;
                         let lineObj = JSON.parse(linesArray[dataIdx]);
-                        tempLine = handleLine(lineObj, streamName);
+                        tempLine = targethandleLine(lineObj, streamName, configObj);
                         //console.log(tempLine)
                         if (tempLine) {
-                            let mapObj = transformer(tempLine, configObj, changeMap);
+                            let mapObj = transformer(tempLine, configObj);
                             if (dataIdx != "0") {
                                 tempresultArray.push(',');
                             }
@@ -142,21 +147,10 @@ function targetJson(configObj, changeMap) {
     return strm;
 }
 exports.targetJson = targetJson;
-function transformJson(configObj, changeMap) {
+function transformJson(configObj) {
     const strm = through2.obj(function (file, encoding, cb) {
         const self = this;
         let returnErr = null;
-        // preprocess line object
-        const targethandleLine = (lineObj, _streamName) => {
-            lineObj = lineObj.record;
-            return lineObj;
-        };
-        // handleline to create message stream
-        const taphandleLine = (lineObj, _streamName) => {
-            let newObj = createRecord(lineObj, _streamName);
-            lineObj = newObj;
-            return lineObj;
-        };
         // set the stream name to the file name (without extension)
         let streamName = file.stem;
         if (file.isBuffer()) {
@@ -169,9 +163,9 @@ function transformJson(configObj, changeMap) {
                         if (linesArray[dataIdx].trim() == "")
                             continue;
                         let lineObj = JSON.parse(linesArray[dataIdx]);
-                        tempLine = targethandleLine(lineObj, streamName);
+                        tempLine = targethandleLine(lineObj, streamName, configObj);
                         if (tempLine) {
-                            let mappedArray = transformer(tempLine, configObj, changeMap);
+                            let mappedArray = transformer(tempLine, configObj);
                             if (mappedArray instanceof Array) {
                                 for (let i in mappedArray) {
                                     mappedArray[i] = JSON.parse(mappedArray[i]);
@@ -210,23 +204,18 @@ function transformJson(configObj, changeMap) {
     return strm;
 }
 exports.transformJson = transformJson;
-function tapJson(configObj, changeMap) {
+function tapJson(configObj) {
     const strm = through2.obj(function (file, encoding, cb) {
         let returnErr = null;
-        let streamName = file.stemc;
-        const handleLine = (lineObj, _streamName) => {
-            let newObj = createRecord(lineObj, _streamName);
-            lineObj = newObj;
-            return lineObj;
-        };
+        let streamName = file.stem;
         if (file.isBuffer()) {
             let inputObj = JSON.parse(file.contents.toString());
-            let mappedArray = transformer(inputObj, configObj, changeMap);
+            let mappedArray = transformer(inputObj, configObj);
             let resultArray = [];
             if (mappedArray instanceof Array) {
                 for (let i in mappedArray) {
                     mappedArray[i] = JSON.parse(mappedArray[i]);
-                    let handleObj = handleLine(mappedArray[i], streamName);
+                    let handleObj = taphandleLine(mappedArray[i], streamName);
                     let tempLine = JSON.stringify(handleObj);
                     if (i != "0") {
                         resultArray.push('\n');
@@ -237,7 +226,7 @@ function tapJson(configObj, changeMap) {
                 }
             }
             else {
-                let handleObj = handleLine(mappedArray, streamName);
+                let handleObj = taphandleLine(mappedArray, streamName);
                 let tempLine = JSON.stringify(handleObj);
                 resultArray.push(tempLine);
             }
