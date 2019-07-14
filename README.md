@@ -17,6 +17,7 @@ This is a **[gulp-etl](https://gulpetl.com/)** plugin, and as such it is a [gulp
 **gulp-etl** plugins accept a configObj as the first parameter; it will contain any info the plugin needs. configObj properties:
 - ``map = {} ``: acts as a "recipe" for creating new object/array using an inputObj as the source
 - ``changeMap : boolean = true`` if true (default), map will change the incoming object; if false, the result of the map operation will replace the incoming object
+- ``mapFullStreamObj : boolean = false`` if false (default), map will always apply to the **record** object on each line. if true, modes which receive a Message Stream (target and transform) will map against the full Message Stream object instead of just the record portion
   
 #### Example:
 
@@ -25,13 +26,18 @@ This is a **[gulp-etl](https://gulpetl.com/)** plugin, and as such it is a [gulp
 {"type": "RECORD", "stream": "users", "record": {"id": 1, "name": "Chris", "lastName": "Smith"}}
 {"type": "RECORD", "stream": "users", "record": {"id": 2, "name": "Mike", "lastName": "Brown"}}
 ```
-
-The map applies to the **record** object on each line, so a map of ``{"Full Name": "{{lastName}}, {{name}}"}`` would result in JSON like the following:
+##### gulpfile:
 ```
+...
+.pipe(transformJson.target({"Full Name": "{{lastName}}, {{name}}", changeMap:false}))
+...
+
+/* result
 [
   {"Full Name": "Smith, Chris"},
   {"Full Name": "Brown, Mike"}
 ]
+*/
 ```
 ### Modes
 

@@ -78,7 +78,7 @@ function runtransformJson(callback: any) {
     .on('data', function (file:Vinyl) {
       log.info('Starting processing on ' + file.basename  + " and mapping to " + mapext)
     })  
-    .pipe(transformJson({map:loadedMap, changeMap:mergeOriginal}))  
+    .pipe(transformJson({map:loadedMap, changeMap:mergeOriginal, mapFullStreamObj:false}))  
     //.pipe(targetJson(maps, mergeOriginal))
     //.pipe(tapJson(maps, mergeOriginal))
     .pipe(rename({

@@ -8,7 +8,7 @@ const log = loglevel.getLogger(PLUGIN_NAME) // get a logger instance based on th
 log.setLevel((process.env.DEBUG_LEVEL || 'warn') as loglevel.LogLevelDesc)
 
 var qewdTransform = require('qewd-transform-json').transform
-var merge = require('merge'), original, cloned
+var merge = require('merge')
 var replaceExt = require('replace-ext');
 
 /** wrap incoming recordObject in a Singer RECORD Message object*/
@@ -16,19 +16,40 @@ function createRecord(recordObject:Object, streamName: string) : any {
   return {type:"RECORD", stream:streamName, record:recordObject}
 }
 
+// preprocess line object
+const targethandleLine = (lineObj: any, _streamName : string, configObj?: ConfigObj): object | null => {
+  if (!configObj || !configObj.mapFullStreamObj) {
+    lineObj = lineObj.record
+  }
+  
+  return lineObj
+}
+
+// handleline to create message stream
+const taphandleLine = (lineObj: any, _streamName : string): object | null => {
+  let newObj = createRecord(lineObj, _streamName)
+  lineObj = newObj
+  return lineObj
+}
+
+
 class ConfigObj {
   /** acts as a "recipe" for creating new object/array using an inputObj as the source */
-  map : Object | Array<Object> = {}
+  map? : Object | Array<Object> = {}
   /** if true, map will change the incoming object; if false, the result of the map operation will replace the incoming object */
-  changeMap : boolean = true
+  changeMap? : boolean = true
+  /** if true, modes which receive a Message Stream (target and transform) will map against the full Message Stream object instead of just the record portion */
+  mapFullStreamObj? : boolean = false
 
   constructor(initial:any) {
-    if (initial.map !== undefined && initial.map !== null) {
+    if (initial.map !== undefined && initial.map !== null && (initial.map instanceof Array || initial.map instanceof Object)) {
       this.map = initial.map
     }
-    if (initial.changeMap !== undefined && initial.changeMap !== null &&
-      (initial.changeMap instanceof Array || initial.changeMap instanceof Object)) {
-      this.changeMap = initial.changeMap
+    if (!initial.changeMap) {
+      this.changeMap = false // falsey -> false
+    }
+    if (initial.mapFullStreamObj) {
+      this.mapFullStreamObj = true // truthy -> true
     }
 
   }
@@ -103,12 +124,6 @@ export function targetJson(configObj: ConfigObj) {
     const self = this
     let returnErr: any = null
   
-    // preprocess line object
-    const handleLine = (lineObj: any, _streamName : string): object | null => {
-      lineObj = lineObj.record
-      return lineObj
-    }
-
     // set the stream name to the file name (without extension)
     let streamName : string = file.stem
     if (file.isBuffer()) {
@@ -123,7 +138,7 @@ export function targetJson(configObj: ConfigObj) {
           try {
             if (linesArray[dataIdx].trim() == "") continue
             let lineObj = JSON.parse(linesArray[dataIdx])
-            tempLine = handleLine(lineObj, streamName)
+            tempLine = targethandleLine(lineObj, streamName, configObj)
             //console.log(tempLine)
             if (tempLine){
               let mapObj = transformer(tempLine, configObj)
@@ -164,19 +179,6 @@ export function transformJson(configObj: ConfigObj){
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
     const self = this
     let returnErr: any = null
-  
-    // preprocess line object
-    const targethandleLine = (lineObj: any, _streamName : string): object | null => {
-      lineObj = lineObj.record
-      return lineObj
-    }
-
-    // handleline to create message stream
-    const taphandleLine = (lineObj: any, _streamName : string): object | null => {
-      let newObj = createRecord(lineObj, _streamName)
-      lineObj = newObj
-      return lineObj
-    }
 
     // set the stream name to the file name (without extension)
     let streamName : string = file.stem
@@ -189,7 +191,7 @@ export function transformJson(configObj: ConfigObj){
           try {
             if (linesArray[dataIdx].trim() == "") continue
             let lineObj = JSON.parse(linesArray[dataIdx])
-            tempLine = targethandleLine(lineObj, streamName)
+            tempLine = targethandleLine(lineObj, streamName, configObj)
             if (tempLine){
               let mappedArray = transformer(tempLine, configObj)
               if(mappedArray instanceof Array){
@@ -236,14 +238,7 @@ export function transformJson(configObj: ConfigObj){
 export function tapJson(configObj: ConfigObj){
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
     let returnErr: any = null
-    let streamName : string = file.stemc
-
-
-    const handleLine = (lineObj: any, _streamName : string): object | null => {
-      let newObj = createRecord(lineObj, _streamName)
-      lineObj = newObj
-    return lineObj
-  }
+    let streamName : string = file.stem
 
 
     if (file.isBuffer()) {
@@ -253,7 +248,7 @@ export function tapJson(configObj: ConfigObj){
       if(mappedArray instanceof Array){
         for(let i in mappedArray){
           mappedArray[i] = JSON.parse(mappedArray[i])
-          let handleObj = handleLine(mappedArray[i], streamName)
+          let handleObj = taphandleLine(mappedArray[i], streamName)
           let tempLine = JSON.stringify(handleObj)
           if(i != "0"){
             resultArray.push('\n');
@@ -264,7 +259,7 @@ export function tapJson(configObj: ConfigObj){
         }
       }
       else{
-        let handleObj = handleLine(mappedArray, streamName)
+        let handleObj = taphandleLine(mappedArray, streamName)
         let tempLine = JSON.stringify(handleObj)
         resultArray.push(tempLine)
       }
