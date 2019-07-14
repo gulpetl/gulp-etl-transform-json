@@ -1,12 +1,6 @@
 # gulp-etl-transform-json #
 
-This plugin has the functionality of **tap-json**, **target-json** and **transform-json**. 
-
-**Transform-json** takes in two JSON format/file, one is a source JSON and another is template/map JSON. The template/map JSON describes the rules of how you want your JSON to be formatted. The plugin takes a source JSON and then converts to a different JSON using "**qewd-transfrom-json**". For more info check this link "https://www.npmjs.com/package/qewd-transform-json". 
-
-**Tap-json** takes in two JSON format/file, one is a source JSON and another is template/map JSON. Both the files are passed to **transform-json** which gives us mapped JSON file. This JSON file is then converted to a message stream(**ndjson**) in **tap-json**. 
-
-**Target-json** takes in ndjson format/file as a source file and another template/map JSON. The plugin converts ndjson to json before passing the files to **transform-json**. Finally, we get mapped JSON from **transform-json.** 
+This plugin transforms JSON as part of **gulp-etl**. Since JSON is a core part of the **gulp-etl** ecosystem, working with JSON is a pivotal task and this plugin is an important one with lots of capabilities and options.
 
 This is a **[gulp-etl](https://gulpetl.com/)** plugin, and as such it is a [gulp](https://gulpjs.com/) plugin. **gulp-etl** plugins work with [ndjson](http://ndjson.org/) data streams/files which we call **Message Streams** and which are compliant with the [Singer specification](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#output). In the **gulp-etl** ecosystem, **taps** tap into an outside format or system (in this case, a JSON file) and convert their contents/output to a Message Stream, and **targets** convert/output Message Streams to an outside format or system. In this way, these modules can be stacked to convert from one format or system to another, either directly or with transformations or other parsing in between. Message Streams look like this:
 
@@ -20,20 +14,47 @@ This is a **[gulp-etl](https://gulpetl.com/)** plugin, and as such it is a [gulp
 ```
 
 ### Usage
-**gulp-etl** plugins accept a configObj as the first parameter; the configObj will contain any info the plugin needs. For this plugin the configObj is the template/map. The plugin also contains another config other than template/map. The other config it takes in is called **merge**. What merge does is it merges source object and result object. The content of result object that we get after mapping is always different than input object. In order to create a result object similar to input object but only with the differences the **merge** config is used. For more info regarding **merge** click the link " <https://www.npmjs.com/package/merge>". The concept of **merge** is explained in diagram below:
-![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(1).png>)
+**gulp-etl** plugins accept a configObj as the first parameter; it will contain any info the plugin needs. configObj properties:
+- ``map = {} ``: acts as a "recipe" for creating new object/array using an inputObj as the source
+- ``changeMap : boolean = true`` if true (default), map will change the incoming object; if false, the result of the map operation will replace the incoming object
+  
+#### Example:
 
+##### Message Stream:
+```
+{"type": "RECORD", "stream": "users", "record": {"id": 1, "name": "Chris", "lastName": "Smith"}}
+{"type": "RECORD", "stream": "users", "record": {"id": 2, "name": "Mike", "lastName": "Brown"}}
+```
+
+The map applies to the **record** object on each line, so a map of ``{"Full Name": "{{lastName}}, {{name}}"}`` would result in JSON like the following:
+```
+[
+  {"Full Name": "Smith, Chris"},
+  {"Full Name": "Brown, Mike"}
+]
+```
+### Modes
+
+This plugin has the functionality of **tap-json**, **target-json** and **transform-json**. 
+
+**Transform-json** takes in two JSON format/file, one is a source JSON and another is template/map JSON. The template/map JSON describes the rules of how you want your JSON to be formatted. The plugin takes a source JSON and then converts to a different JSON using "**qewd-transfrom-json**". For more info check this link "https://www.npmjs.com/package/qewd-transform-json". 
+
+**Tap-json** takes in two JSON format/file, one is a source JSON and another is template/map JSON. Both the files are passed to **transform-json** which gives us mapped JSON file. This JSON file is then converted to a message stream(**ndjson**) in **tap-json**. 
+
+**Target-json** takes in ndjson format/file as a source file and another template/map JSON. The plugin converts ndjson to json before passing the files to **transform-json**. Finally, we get mapped JSON from **transform-json.** 
+
+### Details
 The JSON format files can be of different content, they may be just an object, instance of array containing object, or array of objects.
 The transformation specifically looks into four different cases the user might run into. These cases are described below: (although **target-json** takes in .ndjson as source it is transformed to JSON before passing to transformer)
 
 1. The source JSON contains only one object and the template/map JSON also contains one object.
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram.png>)
+   ![](./images/Untitled%20Diagram.png)
 2. The source JSON contains only one object but the template/map JSON contains array of object.
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(6).png>)
+   ![](./images/Untitled%20Diagram%20(6).png)
 3. The source JSON is an array of object and template/map JSON is also an array of object. The "**qewd-transform-stream**" takes only objects. Therefore, when the input object is in the form of array of objects it is wrapped around **rootarray object**. For eg: **rootarray{ [ { },{ },... ] }** 
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(7).png>)
+   ![](./images/Untitled%20Diagram%20(7).png)
 4. The source JSON is an array of object but template/map JSON contains one object. The "**qewd-transform-stream**" takes only objects. Therefore, when the input object is in the form of array of objects it is wrapped around **rootarray object**. For eg: **rootarray{ [ { },{ },... ] }** 
-   ![](<https://github.com/DeepenSilwal/gulp-etl-transform-json/blob/master/images/Untitled%20Diagram%20(8).png>)
+   ![](./images/Untitled%20Diagram%20(8).png)
 
 
 
@@ -63,7 +84,7 @@ function runTapJson(callback: any) {
     .on('data', function (file:Vinyl) {
       log.info('Starting processing on ' + file.basename)
     })    
-    .pipe(tapJson(maps, mergeOriginal))
+    .pipe(tapJson(map:maps, changeMap:mergeOriginal))
     .pipe(rename({
       extname: ".ndjson",
     }))      
