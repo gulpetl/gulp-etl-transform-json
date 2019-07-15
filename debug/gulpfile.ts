@@ -13,47 +13,49 @@ log.setLevel((process.env.DEBUG_LEVEL || 'warn') as loglevel.LogLevelDesc)
 import * as rename from 'gulp-rename'
 const errorHandler = require('gulp-error-handle'); // handle all errors in one handler, but still stop the stream if there are errors
 
-const pkginfo = require('pkginfo')(module); // project package.json info into module.exports
+require('pkginfo')(module); // project package.json info into module.exports
 const PLUGIN_NAME = module.exports.name;
 
 import Vinyl = require('vinyl') 
 
-var loadedMap = require('../testdata/maps/map-empty.json');
-var mapext = 'map-empty.json';
-var maprename ='map-empty';
+let mapDir = '../testdata/maps/'
+let mapFileBase: string = 'mapEmpty'
 
-
-
-var src = '../testdata/tests/test-oneobject.json';
-var srctarget = '../testdata/tests/test-oneobject.ndjson';
-let mergeOriginal = false;
+let testDir = '../testdata/tests/'
+let testFileBase: string = 'testObj'
+let changeMap = false;
 
 //if you want your final object as an original object but with only the differences
-function switchmergeOriginal(callback: any) {
-  mergeOriginal = true;
+function changeMapTrue(callback: any) {
+  changeMap = true;
   callback();
 }
 
-
+let loadedMap:string
+let suffix:string
+function loadMapAndSuffix() {
+  loadedMap = require(mapDir + mapFileBase + '.json');
+  suffix = "-" + mapFileBase
+  if (changeMap) suffix = '-change' + suffix
+}
 
 
 function runtargetJson(callback: any) {
   log.info('gulp task starting for ' + PLUGIN_NAME)
+  loadMapAndSuffix()
 
-  return gulp.src(srctarget,{buffer: true})
+  return gulp.src(testDir + testFileBase + '.ndjson',{buffer: true})
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)
     }))
     .on('data', function (file:Vinyl) {
-      log.info('Starting processing on ' + file.basename  + " and mapping to " + mapext)
+      log.info('Starting processing on ' + file.basename  + " and mapping to " + mapFileBase)
     })  
-    //.pipe(transformJson(maps, mergeOriginal))  
-    .pipe(targetJson({map:loadedMap, changeMap:mergeOriginal}))
-    //.pipe(tapJson(maps, mergeOriginal))
+    .pipe(targetJson({map:loadedMap, changeMap:changeMap}))
     .pipe(rename({
-      extname: "-"+ maprename + ".json",
-
+      "prefix": 'TGT-',
+      "suffix": suffix
     }))      
     .pipe(gulp.dest('../testdata/processed'))
     .on('data', function (file:Vinyl) {
@@ -68,22 +70,23 @@ function runtargetJson(callback: any) {
 
 
 function runtransformJson(callback: any) {
+  try {
   log.info('gulp task starting for ' + PLUGIN_NAME)
-  
-  return gulp.src(srctarget,{buffer: true})
+  loadMapAndSuffix() 
+
+  return gulp.src(testDir + testFileBase + '.ndjson',{buffer: true})
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)
     }))
     .on('data', function (file:Vinyl) {
-      log.info('Starting processing on ' + file.basename  + " and mapping to " + mapext)
+      log.info('Starting processing on ' + file.basename  + " and mapping to " + mapFileBase)
     })  
-    .pipe(transformJson({map:loadedMap, changeMap:mergeOriginal, mapFullStreamObj:false}))  
-    //.pipe(targetJson(maps, mergeOriginal))
-    //.pipe(tapJson(maps, mergeOriginal))
+    .pipe(transformJson({map:loadedMap, changeMap:changeMap, mapFullStreamObj:false}))  
     .pipe(rename({
-      extname: "-"+ maprename + ".ndjson",
-    }))      
+      "prefix": 'TFM-',
+      "suffix": suffix
+    }))     
     .pipe(gulp.dest('../testdata/processed'))
     .on('data', function (file:Vinyl) {
       log.info('Finished processing on ' + file.basename)
@@ -92,26 +95,30 @@ function runtransformJson(callback: any) {
       log.info('gulp task complete')
       callback()
     })
-
+  }
+  catch (err) {
+    
+    return callback(err)        
+  }
 }
 
 function runtapJson(callback: any) {
   log.info('gulp task starting for ' + PLUGIN_NAME)
+  loadMapAndSuffix() 
 
-  return gulp.src(src,{buffer: true})
+  return gulp.src(testDir + testFileBase + '.json',{buffer: true})
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)
     }))
     .on('data', function (file:Vinyl) {
-      log.info('Starting processing on ' + file.basename  + " and mapping to " + mapext)
+      log.info('Starting processing on ' + file.basename  + " and mapping to " + mapFileBase)
     })  
-    //.pipe(transformJson(maps, mergeOriginal))  
-    //.pipe(targetJson(maps, mergeOriginal))
-    .pipe(tapJson({map:loadedMap, changeMap:mergeOriginal}))
+    .pipe(tapJson({map:loadedMap, changeMap:changeMap}))
     .pipe(rename({
-      extname: "-"+ maprename + ".ndjson",
-    }))      
+      "prefix": 'TAP-',
+      "suffix": suffix
+    }))  
     .pipe(gulp.dest('../testdata/processed'))
     .on('data', function (file:Vinyl) {
       log.info('Finished processing on ' + file.basename)
@@ -125,85 +132,64 @@ function runtapJson(callback: any) {
 
 exports.default = gulp.series(runtransformJson)
 
-function testOneObject(callback: any) {
-  src = '../testdata/tests/test-oneobject.json';
+function testObj(callback: any) {
+  testFileBase = 'testObj';
   callback();
 }
 
-function testArrayofObject(callback: any) {
-  src = '../testdata/tests/test-array.json';
+function testArr(callback: any) {
+  testFileBase = 'testArr';
   callback();
 }
 
-function oneInputMap(callback: any) {
-  loadedMap = require('../testdata/maps/map-oneobject.json');
-  mapext = 'map-oneobject.json';
-  maprename = 'map-oneobject';
+function mapObj(callback: any) {
+  mapFileBase = 'mapObj'
   callback();
 }
 
-function oneInputarrayMap(callback: any) {
-  loadedMap = require('../testdata/maps/map-array.json');
-  mapext= 'map-array.json';
-  maprename = 'map-array';
+function mapArr(callback: any) {
+  mapFileBase = 'mapArr';
   callback();
 }
 
-function arrayInputarrayMap(callback: any) {
-  loadedMap = require('../testdata/maps/map-array-rootarray.json');
-  mapext = 'map-array-rootarray.json';
-  maprename= 'map-array-rootarray';
+function mapArrRoot(callback: any) {
+  mapFileBase= 'mapArrRoot';
   callback();
 }
 
-function arrayInputoneMap(callback: any) {
-  loadedMap = require('../testdata/maps/map-oneobject-rootarray.json');
-  mapext = 'map-oneobject-rootarray.json';
-  maprename = 'map-oneobject-rootarray';
+function mapObjRoot(callback: any) {
+  mapFileBase = 'mapObjRoot';
   callback();
 }
 
-exports.runtransformJson = gulp.series(switchmergeOriginal, runtransformJson)
+exports.runtransformJson = gulp.series(changeMapTrue, runtransformJson)
 
 //input file with one object is required
-exports.oneinputobjectonemapobject = gulp.series(testOneObject, oneInputMap, runtransformJson)
+exports.oneinputobjectonemapobject = gulp.series(testObj, mapObj, runtransformJson)
 //inorder to merge mapped object with original object and only get the final merged file
-exports.oneinputobjectonemapobjectmerge = gulp.series(testOneObject, switchmergeOriginal, oneInputMap, runtransformJson)
+exports.oneinputobjectonemapobjectmerge = gulp.series(testObj, changeMapTrue, mapObj, runtransformJson)
 
 //input file with one object is required
-exports.oneinputobjectarraymapobject = gulp.series(testOneObject, oneInputarrayMap, runtransformJson)
+exports.oneinputobjectarraymapobject = gulp.series(testObj, mapArr, runtransformJson)
 //inorder to merge mapped object with original object and only get the final merged file
-exports.oneinputobjectarraymapobjectmerge = gulp.series(testOneObject, switchmergeOriginal, oneInputarrayMap, runtransformJson)
+exports.oneinputobjectarraymapobjectmerge = gulp.series(testObj, changeMapTrue, mapArr, runtransformJson)
 
 //input file with array of object is required
-exports.arrayinputobjectarraymapobject = gulp.series(testArrayofObjecttarget,oneInputarrayMap, runtransformJson)
+exports.arrayinputobjectarraymapobject = gulp.series(testArr,mapArr, runtransformJson)
 //inorder to merge mapped object with original object and only get the final merged file
-exports.arrayinputobjectarraymapobjectmerge = gulp.series(testArrayofObjecttarget, switchmergeOriginal, oneInputarrayMap, runtransformJson)
+exports.arrayinputobjectarraymapobjectmerge = gulp.series(testArr, changeMapTrue, mapArr, runtransformJson)
 
 //input file with array of object is required
-exports.arrayinputobjectonemapobject = gulp.series(testArrayofObjecttarget, oneInputMap, runtransformJson)
+exports.arrayinputobjectonemapobject = gulp.series(testArr, mapObj, runtransformJson)
 //inorder to merge mapped object with original object and only get the final merged file
-exports.arrayinputobjectonemapobjectmerge = gulp.series(testArrayofObjecttarget, switchmergeOriginal, oneInputMap, runtransformJson)
+exports.arrayinputobjectonemapobjectmerge = gulp.series(testArr, changeMapTrue, mapObj, runtransformJson)
 
 
 
 
-exports.runtapJson = gulp.series(switchmergeOriginal, runtapJson)
-exports.taparrayinputobjectarraymapobject = gulp.series(testArrayofObject, arrayInputarrayMap, runtapJson )
+exports.runtapJson = gulp.series(changeMapTrue, runtapJson)
+exports.taparrayinputobjectarraymapobject = gulp.series(testArr, mapArrRoot, runtapJson )
 
-
-function testArrayofObjecttarget(callback: any) {
-  srctarget = '../testdata/tests/test-array.ndjson';
-  callback();
-}
-
-
-function testOneObjecttarget(callback: any) {
-  srctarget = '../testdata/tests/test-oneobject.ndjson';
-  callback();
-}
-
-
-exports.runtargetJson = gulp.series(switchmergeOriginal,runtargetJson)
-exports.targetarrayinputobjectarraymapobject = gulp.series(testArrayofObjecttarget,oneInputarrayMap, runtargetJson)
+exports.runtargetJson = gulp.series(changeMapTrue,runtargetJson)
+exports.targetarrayinputobjectarraymapobject = gulp.series(testArr,mapArr, runtargetJson)
 //exports.runtargetCsvBuffer = gulp.series(switchToBuffer, runtargetCsv)

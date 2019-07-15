@@ -1,0 +1,6 @@
+{"type":"RECORD","stream":"testArr","record":{"Name":"Toyota","Manufactured":"2012","Sold":false,"Selling Price":"Selling price for Toyota is not available online "}}
+{"type":"RECORD","stream":"testArr","record":{"Name":"Toyota","Manufactured":"2012","Description":"The car with best mileage guranteed"}}
+{"type":"RECORD","stream":"testArr","record":{"Name":"Toyota","Sold":"True"}}
+{"type":"RECORD","stream":"testArr","record":{"Name":"Honda","Manufactured":"2009","Sold":false,"Selling Price":"Selling price for Honda is not available online "}}
+{"type":"RECORD","stream":"testArr","record":{"Name":"Honda","Manufactured":"2009","Description":"The car with best mileage Looks"}}
+{"type":"RECORD","stream":"testArr","record":{"Name":"Honda","Sold":"True"}}

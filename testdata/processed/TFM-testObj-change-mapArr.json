@@ -1,0 +1,3 @@
+{"type":"RECORD","stream":"testObj","record":{"Name":"Toyota","Manufactured":"2012","Model":"Corolla","Mileage":"80,000","Description":"The car with best mileage guranteed","Sold":false,"Selling Price":"Selling price for Toyota is not available online "}}
+{"type":"RECORD","stream":"testObj","record":{"Name":"Toyota","Manufactured":"2012","Model":"Corolla","Mileage":"80,000","Description":"The car with best mileage guranteed","Sold":false,"Selling Price":"Selling price for Toyota is not available online "}}
+{"type":"RECORD","stream":"testObj","record":{"Name":"Toyota","Manufactured":"2012","Model":"Corolla","Mileage":"80,000","Description":"The car with best mileage guranteed","Sold":"True","Selling Price":"Selling price for Toyota is not available online "}}

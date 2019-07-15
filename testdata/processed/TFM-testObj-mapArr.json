@@ -1,0 +1,3 @@
+{"type":"RECORD","stream":"testObj","record":{"Name":"Toyota","Manufactured":"2012","Sold":false,"Selling Price":"Selling price for Toyota is not available online "}}
+{"type":"RECORD","stream":"testObj","record":{"Name":"Toyota","Manufactured":"2012","Description":"The car with best mileage guranteed"}}
+{"type":"RECORD","stream":"testObj","record":{"Name":"Toyota","Sold":"True"}}
