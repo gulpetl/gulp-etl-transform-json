@@ -192,7 +192,7 @@ function transformJson(configObj) {
                 }
                 let data = resultArray.join('');
                 file.contents = Buffer.from(data);
-                file.path = replaceExt(file.path, '.json');
+                file.path = replaceExt(file.path, '.ndjson');
                 return cb(returnErr, file);
             }
             catch (err) {
@@ -205,35 +205,55 @@ function transformJson(configObj) {
 }
 exports.transformJson = transformJson;
 function tapJson(configObj) {
+    function tapRecord(mappedArray, streamName) {
+        let result = '';
+        if (mappedArray instanceof Array) {
+            for (let i in mappedArray) {
+                mappedArray[i] = JSON.parse(mappedArray[i]);
+                let handleObj = taphandleLine(mappedArray[i], streamName);
+                let tempLine = JSON.stringify(handleObj);
+                if (i != "0") {
+                    result += '\n';
+                }
+                if (tempLine) {
+                    result += tempLine;
+                }
+            }
+        }
+        else {
+            let handleObj = taphandleLine(mappedArray, streamName);
+            let tempLine = JSON.stringify(handleObj);
+            result += tempLine;
+        }
+        return result;
+    }
     const strm = through2.obj(function (file, encoding, cb) {
         let returnErr = null;
         let streamName = file.stem;
-        if (file.isBuffer()) {
-            let inputObj = JSON.parse(file.contents.toString());
-            let mappedArray = transformer(inputObj, configObj);
-            let resultArray = [];
-            if (mappedArray instanceof Array) {
-                for (let i in mappedArray) {
-                    mappedArray[i] = JSON.parse(mappedArray[i]);
-                    let handleObj = taphandleLine(mappedArray[i], streamName);
-                    let tempLine = JSON.stringify(handleObj);
-                    if (i != "0") {
-                        resultArray.push('\n');
-                    }
-                    if (tempLine) {
-                        resultArray.push(tempLine);
-                    }
+        try {
+            if (file.isBuffer()) {
+                let inputObj = JSON.parse(file.contents.toString());
+                let mappedArray;
+                let resultArray = [];
+                if (inputObj instanceof Array) {
+                    // handle each line of an array as its own object, to be transformed individually
+                    inputObj.forEach(element => {
+                        mappedArray = transformer(element, configObj);
+                        resultArray.push(tapRecord(mappedArray, streamName));
+                    });
                 }
+                else {
+                    mappedArray = transformer(inputObj, configObj);
+                    resultArray.push(tapRecord(mappedArray, streamName));
+                }
+                let data = resultArray.join('\n');
+                file.contents = Buffer.from(data);
+                file.path = replaceExt(file.path, '.ndjson');
+                return cb(returnErr, file);
             }
-            else {
-                let handleObj = taphandleLine(mappedArray, streamName);
-                let tempLine = JSON.stringify(handleObj);
-                resultArray.push(tempLine);
-            }
-            let data = resultArray.join('');
-            file.contents = Buffer.from(data);
-            file.path = replaceExt(file.path, '.ndjson');
-            return cb(returnErr, file);
+        }
+        catch (err) {
+            this.emit('error', new PluginError(PLUGIN_NAME, err));
         }
     });
     return strm;

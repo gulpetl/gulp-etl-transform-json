@@ -219,7 +219,7 @@ export function transformJson(configObj: ConfigObj){
         }
         let data:string = resultArray.join('')
         file.contents = Buffer.from(data)
-        file.path = replaceExt(file.path, '.json')
+        file.path = replaceExt(file.path, '.ndjson')
         return cb(returnErr, file)
 
       }
@@ -236,40 +236,61 @@ export function transformJson(configObj: ConfigObj){
 
 
 export function tapJson(configObj: ConfigObj){
+
+  function tapRecord(mappedArray:Array<any>,streamName:string):string {
+    let result : string = ''
+
+    if(mappedArray instanceof Array){
+      for(let i in mappedArray){
+        mappedArray[i] = JSON.parse(mappedArray[i])
+        let handleObj = taphandleLine(mappedArray[i], streamName)
+        let tempLine = JSON.stringify(handleObj)
+        if(i != "0"){
+          result += '\n';
+        }
+        if(tempLine){
+          result += tempLine
+        }
+      }
+    }
+    else{
+      let handleObj = taphandleLine(mappedArray, streamName)
+      let tempLine = JSON.stringify(handleObj)
+      result += tempLine
+    }
+
+    return result
+  }
+
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
     let returnErr: any = null
     let streamName : string = file.stem
 
-
+    try {
     if (file.isBuffer()) {
       let inputObj = JSON.parse(file.contents.toString())
-      let mappedArray = transformer(inputObj, configObj)
+      let mappedArray
       let resultArray = []
-      if(mappedArray instanceof Array){
-        for(let i in mappedArray){
-          mappedArray[i] = JSON.parse(mappedArray[i])
-          let handleObj = taphandleLine(mappedArray[i], streamName)
-          let tempLine = JSON.stringify(handleObj)
-          if(i != "0"){
-            resultArray.push('\n');
-          }
-          if(tempLine){
-            resultArray.push(tempLine)
-          }
-        }
+      if (inputObj instanceof Array) {
+        // handle each line of an array as its own object, to be transformed individually
+        inputObj.forEach(element => {
+          mappedArray = transformer(element, configObj)
+          resultArray.push(tapRecord(mappedArray, streamName))
+        })
       }
-      else{
-        let handleObj = taphandleLine(mappedArray, streamName)
-        let tempLine = JSON.stringify(handleObj)
-        resultArray.push(tempLine)
+      else {
+        mappedArray = transformer(inputObj, configObj)
+        resultArray.push(tapRecord(mappedArray, streamName))
       }
-
-      let data:string = resultArray.join('')
+      let data:string = resultArray.join('\n')
       file.contents = Buffer.from(data)
       file.path = replaceExt(file.path, '.ndjson')
       return cb(returnErr, file)
-
     }
-  })
+    }
+    catch(err) {
+      this.emit('error', new PluginError(PLUGIN_NAME, err))
+    }  
+    })
   return strm
 }

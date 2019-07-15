@@ -162,6 +162,11 @@ function mapObjRoot(callback: any) {
   callback();
 }
 
+function mapEmpty(callback: any) {
+  mapFileBase = 'mapEmpty';
+  callback();
+}
+
 exports.runtransformJson = gulp.series(changeMapTrue, runtransformJson)
 
 //input file with one object is required
@@ -184,6 +189,7 @@ exports.arrayinputobjectonemapobject = gulp.series(testArr, mapObj, runtransform
 //inorder to merge mapped object with original object and only get the final merged file
 exports.arrayinputobjectonemapobjectmerge = gulp.series(testArr, changeMapTrue, mapObj, runtransformJson)
 
+exports.TAP_testArr_change_mapEmpty = gulp.series(testArr, changeMapTrue, mapEmpty, runtapJson)
 
 
 
