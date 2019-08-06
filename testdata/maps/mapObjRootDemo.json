@@ -1,0 +1,9 @@
+{
+  "Name":"{{Name}}",
+  "UpdatedModel": [
+    "{{Model}}",
+    {
+      "UpdatedPrice": "{{Price}}"
+    }
+  ]
+}

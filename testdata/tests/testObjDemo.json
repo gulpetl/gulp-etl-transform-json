@@ -1,0 +1,26 @@
+[
+    {
+    "Name": "Toyota",
+    "Manufactured": "2012",
+    "Model": [
+        {
+            "Specification": "Corolla",
+            "Type": "sedan",
+            "Price": 10000
+        },
+        {
+            "Specification": "Camry",
+            "Type": "sedan",
+            "Price": 20000
+
+        },
+        {
+            "Specification": "Rav4",
+            "Type": "SUV",
+            "Price": 30000
+        }
+    ]
+    
+    }
+
+]

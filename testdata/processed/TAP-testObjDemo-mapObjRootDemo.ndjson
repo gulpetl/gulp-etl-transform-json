@@ -1,0 +1,1 @@
+{"type":"RECORD","stream":"testObjDemo","record":{"Name":"Toyota","UpdatedModel":[{"UpdatedPrice":10000},{"UpdatedPrice":20000},{"UpdatedPrice":30000}]}}
