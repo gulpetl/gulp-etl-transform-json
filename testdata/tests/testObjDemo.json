@@ -1,8 +1,4 @@
-[
-    {
-    "Name": "Toyota",
-    "Manufactured": "2012",
-    "Model": [
+ [
         {
             "Specification": "Corolla",
             "Type": "sedan",
@@ -21,6 +17,4 @@
         }
     ]
     
-    }
-
-]
+    
