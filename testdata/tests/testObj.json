@@ -1,8 +1,9 @@
-{
-  "Name": "Toyota",
-  "Manufactured": "2012",
-  "Model": "Corolla",
-  "Mileage": "80,000",
-  "Description": "The car with best mileage guranteed",
-  "Sold": false
-}
+
+  {
+    "Name": "Toyota",
+    "Manufactured": "2012",
+    "Model": "Corolla",
+    "Mileage": "80,000",
+    "Description": "The car with best mileage guranteed",
+    "Sold": false
+  }

@@ -142,6 +142,11 @@ function testArr(callback: any) {
   callback();
 }
 
+function testObjDemo(callback: any) {
+  testFileBase = 'testObjDemo';
+  callback();
+}
+
 function mapObj(callback: any) {
   mapFileBase = 'mapObj'
   callback();
@@ -167,6 +172,10 @@ function mapEmpty(callback: any) {
   callback();
 }
 
+function mapObjRootDemo(callback: any){
+  mapFileBase='mapObjRootDemo';
+  callback();
+}
 exports.runtransformJson = gulp.series(changeMapTrue, runtransformJson)
 
 //input file with one object is required
@@ -195,6 +204,10 @@ exports.TAP_testArr_change_mapEmpty = gulp.series(testArr, changeMapTrue, mapEmp
 
 exports.runtapJson = gulp.series(changeMapTrue, runtapJson)
 exports.taparrayinputobjectarraymapobject = gulp.series(testArr, mapArrRoot, runtapJson )
+
+//created to dest the demo file
+exports.taparrayinputobjectonemapobject = gulp.series(testObjDemo, mapObjRootDemo, runtapJson )
+
 
 exports.runtargetJson = gulp.series(changeMapTrue,runtargetJson)
 exports.targetarrayinputobjectarraymapobject = gulp.series(testArr,mapArr, runtargetJson)
