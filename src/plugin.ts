@@ -93,7 +93,7 @@ function transformer(inputObjOrArr: Object | Array<Object>, configObj:ConfigObj)
     }
   }
   var newObj = qewdTransform(configObj.map, inputObjOrArr)  
-  console.log(JSON.stringify(newObj))
+  
   // if we changed inputObjOrArray put it back like we found it
   if((inputObjOrArr as any).__rootArray){
     inputObjOrArr = (inputObjOrArr as any).__rootArray
