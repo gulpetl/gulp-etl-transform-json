@@ -93,10 +93,14 @@ function transformer(inputObjOrArr: Object | Array<Object>, configObj:ConfigObj)
     }
   }
   var newObj = qewdTransform(configObj.map, inputObjOrArr)  
-
+  
   // if we changed inputObjOrArray put it back like we found it
   if((inputObjOrArr as any).__rootArray){
     inputObjOrArr = (inputObjOrArr as any).__rootArray
+  }
+
+  if((newObj as any).__rootArray){
+    newObj = (newObj as any).__rootArray
   }
 
   if(newObj instanceof Array){//this is the case if you have array of maps
