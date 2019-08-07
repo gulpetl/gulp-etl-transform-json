@@ -81,6 +81,9 @@ function transformer(inputObjOrArr, configObj) {
     if (inputObjOrArr.__rootArray) {
         inputObjOrArr = inputObjOrArr.__rootArray;
     }
+    if (newObj.__rootArray) {
+        newObj = newObj.__rootArray;
+    }
     if (newObj instanceof Array) { //this is the case if you have array of maps
         for (let i in newObj) {
             let tempLine = JSON.stringify(unwrapAndMerge(newObj[i], inputObjOrArr, configObj));

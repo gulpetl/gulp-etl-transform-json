@@ -1,6 +1,6 @@
 {
   "name": "gulp-etl-transform-json",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "repository": "https://github.com/gulpetl/gulp-etl-transform-json",
   "description": "Transform arbitrary JSON using a JSON map. Works on existing gulp-etl Message Stream JSON, or converts to/from a Message Stream",
   "main": "dist/js/plugin.js",
@@ -47,7 +47,6 @@
     "gulp-error-handle": "^1.0.1",
     "gulp-rename": "^1.4.0",
     "jest": "^24.8.0",
-    "jest-spec-reporter": "^1.0.6",
     "rimraf": "^2.6.3",
     "ts-jest": "^24.0.2",
     "ts-node": "^7.0.1",
