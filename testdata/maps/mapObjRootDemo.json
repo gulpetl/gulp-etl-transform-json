@@ -1,5 +1,9 @@
 {
-  
-      "UpdatedPrice": "{{Price}}"
-    
+  "Name":"{{Name}}",
+  "__rootArray": [
+    "{{Model}}",
+    {
+      "Price": "{{Price}}"
+    }
+  ]
 }
