@@ -29,7 +29,7 @@
   "homepage": "https://gulpetl.com",
   "dependencies": {
     "loglevel": "^1.6.3",
-    "merge": "^1.2.1",
+    "merge": "^2.1.1",
     "pkginfo": "^0.4.1",
     "plugin-error": "^1.0.1",
     "qewd-transform-json": "^1.11.0",
